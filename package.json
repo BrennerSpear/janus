@@ -7,7 +7,7 @@
     "reload": "lb-ng server/server.js client/js/services/lb-services.js",
     "pretest": "jshint .",
     "postinstall": "bower install",
-    "start": "npm run reload && node .",
+    "start": "npm run reload && nodemon .",
     "test": "./node_modules/.bin/mocha --reporter spec"
   },
   "dependencies": {
@@ -27,6 +27,7 @@
     "chai": "^3.5.0",
     "jshint": "^2.5.6",
     "mocha": "^3.2.0",
+    "nodemon": "^1.11.0",
     "tape": "^4.2.0"
   },
   "repository": {

@@ -43,18 +43,20 @@
          ng-show="ctrl.voyages.length">
     <thead>
       <tr>
-        <th>ID</th>
-        <th>Port</th>
-        <th>ETA</th>
-        <th>ETD</th>
+        <th>Departure Port</th>
+        <th>Departure Date</th>
+        <th>Arrival Port</th>
+        <th>Arrival Date</th>
+        <th>Vessel</th>
       </tr>
     </thead>
     <tbody>
       <tr ng-repeat="voyage in ctrl.voyages">
-        <th>{{ voyage.id }}</th>
-        <td>{{ voyage.port }}</td>
-        <td>{{ (voyage.eta | date) || 'N/A' }}</td>
-        <td>{{ (voyage.etd | date) || 'N/A' }}</td>
+        <th>{{ voyage.departurePort }}</th>
+        <td>{{ (voyage.departureDate | date) || 'N/A' }}</td>
+        <th>{{ voyage.arrivalPort}}</th>
+        <td>{{ (voyage.arrivalDate | date) || 'N/A' }}</td>
+        <td>{{ voyage.vessel }}</td>
       </tr>
     </tbody>
   </table>
