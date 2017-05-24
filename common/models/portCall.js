@@ -1,132 +1,76 @@
 'use strict';
 
-//Need to take care of gaps in routesId ([route, undefined, route])
-const callsToRoutes = function(calls) {
-  var routes = []
+//assumes ordered by routeId asc, eta asc
+//turns it them into linked lists, basically
+const addNextPort = function(calls) {
   var call
-  var routeId
-  for(var i=0; i<calls.length; i++) {
+  var nextCall
+  for(var i=0; i<calls.length-1; i++) {
     call = calls[i]
-    //cheap way to deal with empty routes[0]
-    routeId = call.routeId - 1
-
-    if(routes[routeId] === undefined) {
-      var route = {
-        routeId: routeId,
-        vessel: call.vessel,
-        stops: []
-      }
-      routes[routeId] = route
+    call.transCalls = []
+    nextCall = calls[i+1]
+    if(call.routeId === nextCall.routeId) {
+      call.nextCall = nextCall
     }
-
-    var stop = {
-      id: call.id,
-      vessel: call.vessel,
-      port: call.port,
-      eta: call.eta,
-      etd: call.etd,
-      nextStop: null,
-      transStops: []
-    }
-    routes[routeId].stops.push(stop)
   }
-
-  routes.forEach(route => {
-    for(var i=0; i<route.stops.length-1; i++) {
-      var stop = route.stops[i]
-      stop.nextStop = route.stops[i+1]
-    }
-  })
-  return routes
 }
 
+// add connections that cross ports at the same time
+const addTransCalls = function(calls) {
+  var call
+  var otherCall
+  for(var i=0; i<calls.length-1; i++) {
+    call = calls[i]
+    for(var j=i+1; j<calls.length-1; j++) {
+      otherCall = calls[j]
 
-const addTransStops = function(routes) {
+      if(call.routeId !== otherCall.routeId
+      && call.port === otherCall.port
+      && call.eta && otherCall.eta) {
 
-  //need to get to stops, which are in routes...
-  for(var i=0; i<routes.length; i++) {
-
-    var stops = routes[i].stops
-    for (var j=0; j<stops.length; j++) {
-
-      var stop = stops[j]
-      //only want to check on the OTHER routes
-      for(var k=i+1; k<routes.length; k++) {
-
-        var otherStops = routes[k].stops
-        for(var l=0; l<otherStops.length; l++) {
-
-          var otherStop = otherStops[l]
-          //if they stop at the same port, they might be overlapping!
-          //and they have to be coming from somewhere
-          if(stop.port === otherStop.port && stop.eta && otherStop.eta) {
-            //basically uses merge-interval logic to see if they overlap
-            var [earlierStop, laterStop] = Date.parse(stop.eta) <= Date.parse(otherStop.eta)? [stop, otherStop] : [otherStop, stop]
-            if(earlierStop.etd > laterStop.eta) {
-              //add the transStops to each other
-              stop.transStops.push(otherStop)
-              otherStop.transStops.push(stop)
-            }
-          }
+        var [earlierCall, laterCall] = Date.parse(call.eta) <= Date.parse(otherCall.eta)? [call, otherCall] : [otherCall, call]
+        if(Date.parse(earlierCall.etd) > Date.parse(laterCall.eta)) {
+          call.transCalls.push(otherCall)
+          otherCall.transCalls.push(call)
         }
       }
     }
   }
 }
 
-const addTransVoyages = function(stop, transStops) {
-  var transVoyages = []
-
-  for(var i=0; i<transStops.length; i++) {
-    var currentStop = transStops[i]
-    //the stop & current stop start the same
-    //we want all the stops after that
-    while(currentStop.nextStop) {
-      if(stop.port !== currentStop.nextStop.port) {
-        var transVoyage = {
-          //this doesn't account for if there's a third vessel...
-          vessel: [stop.vessel, currentStop.nextStop.vessel],
-          departurePort: stop.port,
-          departureDate: stop.etd,
-          arrivalPort:   currentStop.nextStop.port,
-          arrivalDate:   currentStop.nextStop.eta,
-          transShipment: true
-        }
-        transVoyages.push(transVoyage)
-      }
-      //recursively go through the transStops if there are any
-      if(currentStop.nextStop.transStops.length>0) {
-        var moreTransVoyages = addTransVoyages(stop, currentStop.nextStop.transStops)
-        transVoyages.push(...moreTransVoyages)
-      }
-      currentStop = currentStop.nextStop
-    }
-  }
-
-  return transVoyages
-}
-
-const stopsToVoyages = function(stops) {
+const callToVoyages = function(call, startCall, vessels) {
   var voyages = []
+  var currentCall = call
+  var startCall = startCall || call
+  var vessels = vessels || []
 
-  for(var i=0; i<stops.length; i++) {
-    console.log('a stop', stops[i], '\n')
-    for(var j=i+1; j<stops.length; j++) {
-      if(stops[i].port !== stops[j].port) {
-        var voyage = {
-          vessel: stops[i].vessel,
-          departurePort: stops[i].port,
-          departureDate: stops[i].etd,
-          arrivalPort:   stops[j].port,
-          arrivalDate:   stops[j].eta,
-          transShipment: false
-        }
-        voyages.push(voyage)
+  //deal with multi-transshipments that have 2+ vessels
+  if(!vessels.includes(currentCall.vessel)) {
+    vessels.push(currentCall.vessel)
+  }
 
-        if(stops[j].transStops.length>0) {
-          var transVoyages = addTransVoyages(stops[i], stops[j].transStops)
-          voyages.push(...transVoyages)
-        }
+  while(currentCall.nextCall) {
+
+    currentCall = currentCall.nextCall
+    //add the normal 'next' port
+    if(startCall.port !== currentCall.port) {
+      var voyage = {
+        vessel: vessels,
+        departurePort: startCall.port,
+        departureDate: startCall.etd,
+        arrivalPort: currentCall.port,
+        arrivalDate: currentCall.eta,
+        transShipment: (vessels.length>1)
+      }
+      voyages.push(voyage)
+    }
+    //if there are any transCalls, recursively get those voyages
+    //this can handle infinite (okay maybe just 'a lot of') transconnections
+    if(!!currentCall.transCalls) {
+      for(var i=0; i<currentCall.transCalls.length; i++) {
+        var transCall = currentCall.transCalls[i]
+        var transVoyages = callToVoyages(transCall, startCall, vessels.slice())
+        voyages.push(...transVoyages)
       }
     }
   }
@@ -134,25 +78,19 @@ const stopsToVoyages = function(stops) {
   return voyages
 }
 
-const routesToVoyages = function(routes) {
-  var legitRoutes = routes.filter(route => {return route.stops.length>1})
+//starting voyages from every port call
+const callsToVoyages = function(calls) {
   var voyages = []
 
-  for(var i=0; i<legitRoutes.length; i++) {
-    var route =legitRoutes[i]
-    var voyagesFromStops = stopsToVoyages(route.stops)
-    voyages.push(...voyagesFromStops)
-
+  for(var i=0; i<calls.length-1; i++) {
+    voyages.push(...callToVoyages(calls[i]))
   }
-
   return voyages
 }
 
 const cleanVesselNames = function(voyages) {
   voyages.forEach(voyage => {
-    if(Array.isArray(voyage.vessel)) {
       voyage.vessel = voyage.vessel.join(', ')
-    }
   })
 }
 
@@ -171,15 +109,16 @@ module.exports = function(PortCall) {
             or: [{ eta: { lte: eta } }, { eta: null }]
           }
         ]
-      }
+      },
+      //so we can loop through without worrying if we're missing something
+      order: ['routeId ASC', 'eta ASC']
     };
 
     PortCall.find(query)
       .then(calls => {
-
-        var routes = callsToRoutes(calls)
-        addTransStops(routes)
-        var voyages = routesToVoyages(routes)
+        addNextPort(calls)
+        addTransCalls(calls)
+        var voyages = callsToVoyages(calls)
         cleanVesselNames(voyages)
 
         return cb(null, voyages);

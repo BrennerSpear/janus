@@ -36,7 +36,7 @@ var voyages = [
     departurePort: 'HK',
     departureDate: '2016-01-03',
     arrivalPort: 'SG',
-    arrivalPDate: '2016-01-06',
+    arrivalDate: '2016-01-06',
     vessel: ['USS Harpoon']
   }
 ]
