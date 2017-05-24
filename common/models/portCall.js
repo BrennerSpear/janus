@@ -28,6 +28,9 @@ const addTransCalls = function(calls) {
       && call.port === otherCall.port
       && call.eta && otherCall.eta) {
 
+        //This assumes both ships have to be at the port at the same time
+        //It's possible we could store the shipments somewhere at/near the port
+        //but we'd have to change this
         var [earlierCall, laterCall] = Date.parse(call.eta) <= Date.parse(otherCall.eta)? [call, otherCall] : [otherCall, call]
         if(Date.parse(earlierCall.etd) > Date.parse(laterCall.eta)) {
           call.transCalls.push(otherCall)
