@@ -35,12 +35,14 @@
       ng-click="ctrl.getRoutes(ctrl.etd, ctrl.eta)">
       Find
     </button>
+  
+    <div class="form-group" style="margin: 10px">
+    <input type="checkbox" ng-model="checked" ng-init="checked=false"/> Include transshipments
+    </div>
 
   </form>
 
-  <!-- Display the list of Voyage data - this is just as an example of displaying the initial data -->
-  <table class="table table-striped"
-         ng-show="ctrl.voyages.length">
+  <table class="table table-striped">
     <thead>
       <tr>
         <th>Departure Port</th>
@@ -50,8 +52,17 @@
         <th>Vessel</th>
       </tr>
     </thead>
-    <tbody>
-      <tr ng-repeat="voyage in ctrl.voyages">
+    <tbody ng-if="checked">
+      <tr ng-repeat="voyage in ctrl.allVoyages">
+        <th>{{ voyage.departurePort }}</th>
+        <td>{{ (voyage.departureDate | date) || 'N/A' }}</td>
+        <th>{{ voyage.arrivalPort}}</th>
+        <td>{{ (voyage.arrivalDate | date) || 'N/A' }}</td>
+        <td>{{ voyage.vessel }}</td>
+      </tr>
+    </tbody>
+    <tbody ng-if="!checked">
+      <tr ng-repeat="voyage in ctrl.filteredVoyages">
         <th>{{ voyage.departurePort }}</th>
         <td>{{ (voyage.departureDate | date) || 'N/A' }}</td>
         <th>{{ voyage.arrivalPort}}</th>

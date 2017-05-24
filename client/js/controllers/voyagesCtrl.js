@@ -1,12 +1,13 @@
 angular
   .module('app')
-  .controller('VoyagesCtrl', VoyagesCtrl);
+  .controller('VoyagesCtrl', VoyagesCtrl)
 
 function VoyagesCtrl($log, PortCall) {
 
   let ctrl = this;
 
-  ctrl.voyages = [];
+  ctrl.allVoyages = [];
+  ctrl.filteredVoyages = [];
 
   ctrl.dateOptions = {
     initDate: new Date(2016, 00, 01),
@@ -19,12 +20,17 @@ function VoyagesCtrl($log, PortCall) {
 
     PortCall.getRoutes(params).$promise
       .then(voyages => {
-        ctrl.voyages = voyages;
+        ctrl.allVoyages = voyages;
+        ctrl.filteredVoyages = voyages.filter(voyage => {
+          return !voyage.transShipment
+        })
       })
       .catch(err => {
         $log.error(err);
       });
   };
+
+
 
 }
 

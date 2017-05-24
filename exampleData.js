@@ -14,9 +14,21 @@ var routes = [
         eta: '2016-01-06',
         etd: '2016-01-09',
       },
-
+      {
+        port: 'LAX',
+        eta: '2016-01-12',
+        etd: '2016-01-15',
+      },
+      {
+        port: 'OAK',
+        eta: '2016-01-18',
+        etd: '2100-01-01',
+      },
     ]
   }
+
+
+  
 ]
 
 var voyages = [
@@ -25,7 +37,7 @@ var voyages = [
     departureDate: '2016-01-03',
     arrivalPort: 'SG',
     arrivalPDate: '2016-01-06',
-    vessel: 'USS Harpoon'
+    vessel: ['USS Harpoon']
   }
 ]
 
